@@ -1,0 +1,247 @@
+\documentclass[11pt, a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[english]{babel}
+\usepackage{geometry}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{parskip}
+\usepackage{hyperref}
+\usepackage{microtype}
+\usepackage{lmodern}
+
+\geometry{
+    top=2.5cm,
+    bottom=2.5cm,
+    left=2.5cm,
+    right=2.5cm
+}
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=black,
+    urlcolor=blue,
+    citecolor=black
+}
+
+% -------------------------------------------------------
+\title{\textbf{Bag-of-words classifier}\\[0.4em]
+       \large Project 2 --- Computer Vision and Pattern Recognition}
+\author{Elisabetta Chisso (IN2000231)}
+\date{Summer 2026}
+% -------------------------------------------------------
+
+\begin{document}
+
+\maketitle
+\thispagestyle{empty}
+
+% -------------------------------------------------------
+\section{Introduction}
+
+This project implements an image classifier based on the Bag of Visual
+Words (BoW) approach, applied to the 15-scene dataset by Lazebnik et
+al.~(2006). The dataset contains 1,500 training images and 2,985 test
+images across 15 indoor and outdoor scene categories.
+
+The goal is to build a complete pipeline that extracts local SIFT
+descriptors from images, builds a visual vocabulary using k-means
+clustering, and represents each image as a normalised histogram of
+visual words. Two classifiers are compared: a 1-NN baseline and a
+linear one-vs-rest SVM.
+
+% -------------------------------------------------------
+\section{Pipeline}
+
+The pipeline consists of five main steps:
+\begin{itemize}
+    \item Dataset loading with consistent labels across training and test splits.
+    \item SIFT descriptor extraction from each image.
+    \item Visual vocabulary construction via k-means on training descriptors.
+    \item Image encoding as an L1-normalised histogram of visual words.
+    \item Classification with 1-NN (baseline) and linear one-vs-rest SVM.
+\end{itemize}
+
+\subsection{SIFT descriptor extraction}
+
+For each image, OpenCV's SIFT detector automatically identifies
+keypoints and computes a 128-dimensional descriptor for each one. SIFT
+descriptors are invariant to scale and rotation, which is important for
+a heterogeneous dataset like 15-scene.
+
+From the training set (1,275 images after the validation split),
+approximately 640,000 descriptors are extracted in total, averaging
+around 500 per image.
+
+\subsection{Visual vocabulary}
+
+All descriptors extracted from the training images are concatenated and
+clustered using \texttt{MiniBatchKMeans}. The resulting $k$ centroids
+form the visual vocabulary: the ``visual words'' that represent
+recurring local patterns across scenes.
+
+The choice of $k$ involves a trade-off: a vocabulary that is too small
+produces a coarse representation, while one that is too large yields
+sparse histograms that are harder to compare. For this reason, $k$ is
+selected using a validation set (see Section~\ref{sec:selection}).
+
+\subsection{Encoding and normalisation}
+
+Each image is represented as a histogram of $k$ bins: every descriptor
+is assigned to its nearest visual word (closest centroid), and the
+number of occurrences of each word is counted. The histogram is then
+L1-normalised, converting raw counts into relative frequencies that are
+independent of the number of descriptors in the image.
+
+\subsection{Classifiers}
+
+\textbf{1-NN (baseline):} a 1-nearest-neighbour classifier using
+Euclidean distance. Each test image is assigned to the category of the
+training image whose histogram is most similar. It requires no training
+phase but is sensitive to noise in the histograms.
+
+\textbf{Linear SVM one-vs-rest:} a binary classifier is trained for
+each category. To classify a test image, the real-valued outputs of all
+15 classifiers are computed and the image is assigned to the class with
+the highest score. The SVM is more robust because it learns a global
+decision boundary from all training examples.
+
+% -------------------------------------------------------
+\section{Vocabulary size selection}
+\label{sec:selection}
+
+15\% of the training set was held out as a validation set (225 images)
+before descriptor extraction, using stratified sampling to preserve
+class balance. The vocabulary is built exclusively from the remaining
+1,275 training images, and the test set is never used during model
+selection.
+
+Table~\ref{tab:val} reports validation accuracy for four values of $k$.
+
+\begin{table}[h]
+\centering
+\caption{Validation accuracy for different vocabulary sizes.}
+\label{tab:val}
+\begin{tabular}{cccc}
+\toprule
+$k$ & 1-NN (val) & SVM (val) & Note \\
+\midrule
+50  & 32.9\% & 36.0\% & \\
+\textbf{100} & 32.9\% & \textbf{42.2\%} & best \\
+200 & 30.7\% & 40.9\% & \\
+500 & 28.0\% & 40.0\% & \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Figure~\ref{fig:accuracy} shows validation accuracy as a function of
+vocabulary size for both classifiers.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.75\textwidth]{accuracy_vs_k.png}
+    \caption{Validation accuracy vs vocabulary size $k$.}
+    \label{fig:accuracy}
+\end{figure}
+
+$k{=}100$ achieves the best SVM validation accuracy (42.2\%) and is
+therefore selected for the final evaluation. Notably, 1-NN does not
+benefit from larger vocabularies: as $k$ increases, 1-NN accuracy
+drops, likely because histograms become sparser and Euclidean distance
+loses discriminative power. The SVM is more stable across vocabulary
+sizes, thanks to its regularisation mechanism.
+
+% -------------------------------------------------------
+\section{Results on the test set}
+
+With $k{=}100$, both classifiers were retrained on the full training
+set (1,275 images) and evaluated on the test set (2,985 images).
+Results are reported in Table~\ref{tab:test}.
+
+\begin{table}[h]
+\centering
+\caption{Test set accuracy with the selected vocabulary size $k{=}100$.}
+\label{tab:test}
+\begin{tabular}{lc}
+\toprule
+Classifier & Test accuracy \\
+\midrule
+1-NN              & 36.0\% \\
+\textbf{Linear SVM} & \textbf{42.3\%} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Figures~\ref{fig:cm_knn} and~\ref{fig:cm_svm} show the confusion
+matrices on the validation set for the 1-NN and SVM classifiers
+respectively, with $k{=}100$.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.82\textwidth]{confusion_matrix_1-NN__k100_validation.png}
+    \caption{Confusion matrix --- 1-NN, $k{=}100$ (validation set).}
+    \label{fig:cm_knn}
+\end{figure}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.82\textwidth]{confusion_matrix_SVM__k100_validation.png}
+    \caption{Confusion matrix --- Linear SVM, $k{=}100$ (validation set).}
+    \label{fig:cm_svm}
+\end{figure}
+
+The SVM outperforms the 1-NN baseline by approximately 6 percentage
+points. This result is consistent with expectations for a standard BoW
+pipeline on a moderately difficult dataset (a random classifier would
+achieve around 6.7\% on 15 classes).
+
+Inspecting the confusion matrices, the most commonly confused
+categories are those that share similar low-level patch textures. Open
+outdoor scenes (Coast, OpenCountry, Mountain) tend to be confused with
+each other because they contain large uniform regions (sky, low
+vegetation, ground). Similarly, indoor categories (Office, Kitchen,
+Store) are confused due to rectangular objects and regular textures.
+These errors are expected in a BoW system that discards all spatial
+information.
+
+% -------------------------------------------------------
+\section{Conclusions}
+
+The pipeline is intentionally minimal and transparent: no descriptor
+caching, no advanced normalisation, no off-the-shelf BoW library. Each
+step is implemented with small, well-documented functions that can be
+read and verified line by line.
+
+The final result (42.3\% with linear SVM, $k{=}100$) is in line with
+expectations for a standard BoW baseline. The main limitations are the
+lack of spatial information and the loss of structure during the
+pooling step (the histogram does not encode where in the image each
+visual word appears). Natural extensions would include Spatial Pyramid
+Matching~(Lazebnik et al., 2006) or a chi-squared kernel for the SVM.
+
+% -------------------------------------------------------
+\appendix
+\section*{Appendix: AI usage}
+\addcontentsline{toc}{section}{Appendix: AI usage}
+
+Claude (Anthropic) was used as a support tool during the development of
+this project. Specifically:
+\begin{itemize}
+    \item \textbf{Code structure:} Claude suggested organising the code
+    into separate modules (\texttt{features.py}, \texttt{vocabulary.py},
+    \texttt{classifier.py}, \texttt{utils.py}) and helped identify and
+    fix several bugs in the pipeline (non-deterministic category
+    ordering, descriptor/label misalignment after the train/validation
+    split, figure save paths).
+    \item \textbf{Comments and documentation:} Claude helped refine code
+    comments and notebook Markdown cells to make them clearer and more
+    readable for someone unfamiliar with the project.
+\end{itemize}
+
+All implementation choices and experimental results were independently
+verified and understood. The code was run locally and all reported
+results are real.
+
+\end{document}
