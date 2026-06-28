@@ -1,0 +1,15 @@
+# Dataset and generated artifacts
+dataset/
+models/*.pkl
+models/*.joblib
+
+# Python / Jupyter
+__pycache__/
+*.py[cod]
+.ipynb_checkpoints/
+.venv/
+venv/
+
+# OS / editors
+.vscode/
+.idea/
