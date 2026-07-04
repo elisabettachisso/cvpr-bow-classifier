@@ -41,7 +41,7 @@
 % -------------------------------------------------------
 \section{Introduction}
 
-This project implements an image classifier based on the Bag of Visual
+This project implements an image classifier based on the Bag of
 Words (BoW) approach, applied to the 15-scene dataset by Lazebnik et
 al.~(2006). The dataset contains 1,500 training images and 2,985 test
 images across 15 indoor and outdoor scene categories.
@@ -78,9 +78,13 @@ around 500 per image.
 \subsection{Visual vocabulary}
 
 All descriptors extracted from the training images are concatenated and
-clustered using \texttt{MiniBatchKMeans}. The resulting $k$ centroids
-form the visual vocabulary: the ``visual words'' that represent
-recurring local patterns across scenes.
+clustered using \texttt{MiniBatchKMeans}. Mini-batch k-means was
+preferred over standard k-means for scalability: with approximately
+640,000 descriptors, standard k-means iterations over the full dataset
+would be prohibitively slow, whereas mini-batch updates provide a
+close approximation at a fraction of the computational cost. The
+resulting $k$ centroids form the visual vocabulary: the ``visual
+words'' that represent recurring local patterns across scenes.
 
 The choice of $k$ involves a trade-off: a vocabulary that is too small
 produces a coarse representation, while one that is too large yields
@@ -106,7 +110,10 @@ phase but is sensitive to noise in the histograms.
 each category. To classify a test image, the real-valued outputs of all
 15 classifiers are computed and the image is assigned to the class with
 the highest score. The SVM is more robust because it learns a global
-decision boundary from all training examples.
+decision boundary from all training examples. The regularisation
+parameter $C$ was left at its default value of 1.0 and was not
+additionally tuned, as the focus of model selection was on the
+vocabulary size $k$.
 
 % -------------------------------------------------------
 \section{Vocabulary size selection}
@@ -157,7 +164,8 @@ sizes, thanks to its regularisation mechanism.
 \section{Results on the test set}
 
 With $k{=}100$, both classifiers were retrained on the full training
-set (1,275 images) and evaluated on the test set (2,985 images).
+set (1,500 images, combining the training and validation subsets) and
+evaluated on the test set (2,985 images).
 Results are reported in Table~\ref{tab:test}.
 
 \begin{table}[h]
@@ -168,31 +176,31 @@ Results are reported in Table~\ref{tab:test}.
 \toprule
 Classifier & Test accuracy \\
 \midrule
-1-NN              & 36.0\% \\
-\textbf{Linear SVM} & \textbf{42.3\%} \\
+1-NN              & 35.0\% \\
+\textbf{Linear SVM} & \textbf{42.9\%} \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-Figures~\ref{fig:cm_knn} and~\ref{fig:cm_svm} show the confusion
-matrices on the validation set for the 1-NN and SVM classifiers
+Figures~\ref{fig:cm_knn} and~\ref{fig:cm_svm} show the normalised
+confusion matrices on the test set for the 1-NN and SVM classifiers
 respectively, with $k{=}100$.
 
 \begin{figure}[h]
     \centering
-    \includegraphics[width=0.82\textwidth]{confusion_matrix_1-NN__k100_validation.png}
-    \caption{Confusion matrix --- 1-NN, $k{=}100$ (validation set).}
+    \includegraphics[width=0.82\textwidth]{confusion_matrix_1-NN_k100.png}
+    \caption{Confusion matrix --- 1-NN, $k{=}100$ (test set).}
     \label{fig:cm_knn}
 \end{figure}
 
 \begin{figure}[h]
     \centering
-    \includegraphics[width=0.82\textwidth]{confusion_matrix_SVM__k100_validation.png}
-    \caption{Confusion matrix --- Linear SVM, $k{=}100$ (validation set).}
+    \includegraphics[width=0.82\textwidth]{confusion_matrix_Linear_SVM_k100.png}
+    \caption{Confusion matrix --- Linear SVM, $k{=}100$ (test set).}
     \label{fig:cm_svm}
 \end{figure}
 
-The SVM outperforms the 1-NN baseline by approximately 6 percentage
+The SVM outperforms the 1-NN baseline by approximately 8 percentage
 points. This result is consistent with expectations for a standard BoW
 pipeline on a moderately difficult dataset (a random classifier would
 achieve around 6.7\% on 15 classes).
@@ -214,7 +222,7 @@ caching, no advanced normalisation, no off-the-shelf BoW library. Each
 step is implemented with small, well-documented functions that can be
 read and verified line by line.
 
-The final result (42.3\% with linear SVM, $k{=}100$) is in line with
+The final result (42.9\% with linear SVM, $k{=}100$) is in line with
 expectations for a standard BoW baseline. The main limitations are the
 lack of spatial information and the loss of structure during the
 pooling step (the histogram does not encode where in the image each
@@ -226,7 +234,7 @@ Matching~(Lazebnik et al., 2006) or a chi-squared kernel for the SVM.
 \section*{Appendix: AI usage}
 \addcontentsline{toc}{section}{Appendix: AI usage}
 
-Claude (Anthropic) was used as a support tool during the development of
+Claude was used as a support tool during the development of
 this project. Specifically:
 \begin{itemize}
     \item \textbf{Code structure:} Claude suggested organising the code
@@ -241,7 +249,6 @@ this project. Specifically:
 \end{itemize}
 
 All implementation choices and experimental results were independently
-verified and understood. The code was run locally and all reported
-results are real.
+verified and understood.
 
 \end{document}
