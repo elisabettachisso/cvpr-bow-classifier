@@ -1,6 +1,6 @@
 # Bag-of-Words Scene Classifier
 
-Image classification on the 15-scene dataset (Lazebnik et al., 2006) using the Bag-of-Visual-Words approach.
+Image classification on the 15-scene dataset (Lazebnik et al., 2006) using the Bag-of-Words approach.
 
 ## Pipeline
 

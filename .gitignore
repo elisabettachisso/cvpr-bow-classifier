@@ -3,9 +3,8 @@ dataset/
 models/*.pkl
 models/*.joblib
 
-# Python / Jupyter
+# Python
 __pycache__/
-*.py[cod]
 .ipynb_checkpoints/
 .venv/
 venv/

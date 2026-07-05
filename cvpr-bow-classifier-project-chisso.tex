@@ -77,14 +77,11 @@ around 500 per image.
 
 \subsection{Visual vocabulary}
 
-All descriptors extracted from the training images are concatenated and
-clustered using \texttt{MiniBatchKMeans}. Mini-batch k-means was
-preferred over standard k-means for scalability: with approximately
-640,000 descriptors, standard k-means iterations over the full dataset
-would be prohibitively slow, whereas mini-batch updates provide a
-close approximation at a fraction of the computational cost. The
-resulting $k$ centroids form the visual vocabulary: the ``visual
-words'' that represent recurring local patterns across scenes.
+100,000 descriptors are sampled at random (without replacement, using a
+fixed seed for reproducibility) from all descriptors extracted from the
+training images, and clustered using \texttt{KMeans}. The resulting $k$
+centroids form the visual vocabulary: the ``visual words'' that
+represent recurring local patterns across scenes.
 
 The choice of $k$ involves a trade-off: a vocabulary that is too small
 produces a coarse representation, while one that is too large yields
@@ -135,10 +132,10 @@ Table~\ref{tab:val} reports validation accuracy for four values of $k$.
 \toprule
 $k$ & 1-NN (val) & SVM (val) & Note \\
 \midrule
-50  & 32.9\% & 36.0\% & \\
-\textbf{100} & 32.9\% & \textbf{42.2\%} & best \\
-200 & 30.7\% & 40.9\% & \\
-500 & 28.0\% & 40.0\% & \\
+\textbf{50}  & \textbf{32.4\%} & \textbf{43.6\%} & best \\
+100 & 34.7\% & 40.9\% & \\
+200 & 28.9\% & 40.0\% & \\
+500 & 25.8\% & 39.1\% & \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -153,7 +150,7 @@ vocabulary size for both classifiers.
     \label{fig:accuracy}
 \end{figure}
 
-$k{=}100$ achieves the best SVM validation accuracy (42.2\%) and is
+$k{=}50$ achieves the best SVM validation accuracy (43.6\%) and is
 therefore selected for the final evaluation. Notably, 1-NN does not
 benefit from larger vocabularies: as $k$ increases, 1-NN accuracy
 drops, likely because histograms become sparser and Euclidean distance
@@ -163,44 +160,44 @@ sizes, thanks to its regularisation mechanism.
 % -------------------------------------------------------
 \section{Results on the test set}
 
-With $k{=}100$, both classifiers were retrained on the full training
+With $k{=}50$, both classifiers were retrained on the full training
 set (1,500 images, combining the training and validation subsets) and
 evaluated on the test set (2,985 images).
 Results are reported in Table~\ref{tab:test}.
 
 \begin{table}[h]
 \centering
-\caption{Test set accuracy with the selected vocabulary size $k{=}100$.}
+\caption{Test set accuracy with the selected vocabulary size $k{=}50$.}
 \label{tab:test}
 \begin{tabular}{lc}
 \toprule
 Classifier & Test accuracy \\
 \midrule
-1-NN              & 35.0\% \\
-\textbf{Linear SVM} & \textbf{42.9\%} \\
+1-NN              & 35.5\% \\
+\textbf{Linear SVM} & \textbf{41.9\%} \\
 \bottomrule
 \end{tabular}
 \end{table}
 
 Figures~\ref{fig:cm_knn} and~\ref{fig:cm_svm} show the normalised
 confusion matrices on the test set for the 1-NN and SVM classifiers
-respectively, with $k{=}100$.
+respectively, with $k{=}50$.
 
 \begin{figure}[h]
     \centering
-    \includegraphics[width=0.82\textwidth]{confusion_matrix_1-NN_k100.png}
-    \caption{Confusion matrix --- 1-NN, $k{=}100$ (test set).}
+    \includegraphics[width=0.82\textwidth]{confusion_matrix_1-NN_k50.png}
+    \caption{Confusion matrix --- 1-NN, $k{=}50$ (test set).}
     \label{fig:cm_knn}
 \end{figure}
 
 \begin{figure}[h]
     \centering
-    \includegraphics[width=0.82\textwidth]{confusion_matrix_Linear_SVM_k100.png}
-    \caption{Confusion matrix --- Linear SVM, $k{=}100$ (test set).}
+    \includegraphics[width=0.82\textwidth]{confusion_matrix_Linear_SVM_k50.png}
+    \caption{Confusion matrix --- Linear SVM, $k{=}50$ (test set).}
     \label{fig:cm_svm}
 \end{figure}
 
-The SVM outperforms the 1-NN baseline by approximately 8 percentage
+The SVM outperforms the 1-NN baseline by approximately 6 percentage
 points. This result is consistent with expectations for a standard BoW
 pipeline on a moderately difficult dataset (a random classifier would
 achieve around 6.7\% on 15 classes).
@@ -222,33 +219,113 @@ caching, no advanced normalisation, no off-the-shelf BoW library. Each
 step is implemented with small, well-documented functions that can be
 read and verified line by line.
 
-The final result (42.9\% with linear SVM, $k{=}100$) is in line with
+The final result (41.9\% with linear SVM, $k{=}50$) is in line with
 expectations for a standard BoW baseline. The main limitations are the
 lack of spatial information and the loss of structure during the
 pooling step (the histogram does not encode where in the image each
 visual word appears). Natural extensions would include Spatial Pyramid
 Matching~(Lazebnik et al., 2006) or a chi-squared kernel for the SVM.
 
+
+% -------------------------------------------------------
+\begin{thebibliography}{9}
+
+\bibitem{lazebnik2006}
+S.~Lazebnik, C.~Schmid, and J.~Ponce,
+\textit{Beyond Bags of Features: Spatial Pyramid Matching for Recognizing
+Natural Scene Categories},
+in \textit{Proceedings of the IEEE Conference on Computer Vision and
+Pattern Recognition (CVPR)}, pp.~2169--2178, 2006.
+
+\bibitem{csurka2004}
+G.~Csurka, C.~Dance, L.~Fan, J.~Willamowski, and C.~Bray,
+\textit{Visual Categorization with Bags of Keypoints},
+in \textit{Workshop on Statistical Learning in Computer Vision, ECCV},
+pp.~1--22, 2004.
+
+\bibitem{lowe2004}
+D.~G.~Lowe,
+\textit{Distinctive Image Features from Scale-Invariant Keypoints},
+\textit{International Journal of Computer Vision}, 60(2):91--110, 2004.
+
+\end{thebibliography}
+
 % -------------------------------------------------------
 \appendix
 \section*{Appendix: AI usage}
 \addcontentsline{toc}{section}{Appendix: AI usage}
 
-Claude was used as a support tool during the development of
-this project. Specifically:
-\begin{itemize}
-    \item \textbf{Code structure:} Claude suggested organising the code
-    into separate modules (\texttt{features.py}, \texttt{vocabulary.py},
-    \texttt{classifier.py}, \texttt{utils.py}) and helped identify and
-    fix several bugs in the pipeline (non-deterministic category
-    ordering, descriptor/label misalignment after the train/validation
-    split, figure save paths).
-    \item \textbf{Comments and documentation:} Claude helped refine code
-    comments and notebook Markdown cells to make them clearer and more
-    readable for someone unfamiliar with the project.
-\end{itemize}
+Claude (Anthropic, claude.ai) was used throughout this project as a
+collaborative study companion: a resource to consult when stuck,
+to verify understanding, and to improve code clarity --- not as a
+generator of solutions. All implementation decisions, experimental
+choices, and results were made and verified independently.
 
-All implementation choices and experimental results were independently
-verified and understood.
+\medskip
+\noindent The following examples are representative of how Claude was
+used during development.
+
+\paragraph{Code organisation.}
+After writing a working but monolithic script, I asked:
+\begin{quote}
+\textit{``I have all my BoW code in one file and it's getting hard to
+read. How would you suggest splitting it into modules? I have
+descriptor extraction, k-means vocabulary, histogram encoding, and
+classifiers.''}
+\end{quote}
+Claude suggested the four-module structure
+(\texttt{features.py}, \texttt{vocabulary.py}, \texttt{classifier.py},
+\texttt{utils.py}) that is used in the final codebase. I then
+restructured the code myself following that suggestion.
+
+\paragraph{Debugging.}
+When my confusion matrices showed categories in a different order
+between training and test, I described the symptom:
+\begin{quote}
+\textit{``My confusion matrix looks wrong --- the diagonal is not where
+I expect it. I think the category labels might be in a different order
+for training and test. I'm using \texttt{os.listdir} to get the class
+names. Could that be the problem?''}
+\end{quote}
+Claude confirmed that \texttt{os.listdir} does not guarantee a
+consistent order across calls and suggested using \texttt{sorted()}.
+I verified the fix and applied it.
+
+Similarly, when histograms for some validation images came out as
+all-zero vectors, I asked:
+\begin{quote}
+\textit{``Some of my BoW histograms are all zeros after the
+train/validation split. The images load fine. Could the split have
+caused a descriptor/label misalignment?''}
+\end{quote}
+Claude helped me trace the bug to a list-indexing issue introduced
+by the split. I identified the exact line and corrected it.
+
+\paragraph{Conceptual clarification.}
+While deciding on the normalisation strategy, I used Claude to
+check my reasoning:
+\begin{quote}
+\textit{``I'm normalising my histograms with L1 (divide by the sum of
+counts). Would L2 be better here? I want the vectors to be comparable
+regardless of how many keypoints each image has.''}
+\end{quote}
+Claude confirmed that L1 is the natural choice for frequency
+histograms and explained the difference with L2, which I then
+included in the report.
+
+\paragraph{Documentation.}
+Once the code was complete and correct, I asked Claude to review
+selected docstrings and Markdown cells for clarity:
+\begin{quote}
+\textit{``Can you improve this docstring? I want it to clearly state
+what the function returns and what the shapes are, without adding
+anything that isn't already in the code.''}
+\end{quote}
+Claude proposed revised wording, which I edited further to match
+the style of the rest of the codebase.
+
+\medskip
+\noindent The report was written independently. Claude was not asked
+to draft, summarise, or paraphrase any part of it.
 
 \end{document}
