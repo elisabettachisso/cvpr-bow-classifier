@@ -132,7 +132,7 @@ Table~\ref{tab:val} reports validation accuracy for four values of $k$.
 \toprule
 $k$ & 1-NN (val) & SVM (val) & Note \\
 \midrule
-\textbf{50}  & \textbf{32.4\%} & \textbf{43.6\%} & best \\
+\textbf{50}  & 32.4\% & \textbf{43.6\%} & best \\
 100 & 34.7\% & 40.9\% & \\
 200 & 28.9\% & 40.0\% & \\
 500 & 25.8\% & 39.1\% & \\
@@ -151,11 +151,12 @@ vocabulary size for both classifiers.
 \end{figure}
 
 $k{=}50$ achieves the best SVM validation accuracy (43.6\%) and is
-therefore selected for the final evaluation. Notably, 1-NN does not
-benefit from larger vocabularies: as $k$ increases, 1-NN accuracy
-drops, likely because histograms become sparser and Euclidean distance
-loses discriminative power. The SVM is more stable across vocabulary
-sizes, thanks to its regularisation mechanism.
+therefore selected for the final evaluation. The 1-NN peaks at
+$k{=}100$ (34.7\%) and then degrades for larger vocabularies, as
+histograms become sparser and Euclidean distance loses discriminative
+power. The SVM achieves its best result at the smallest vocabulary
+tested ($k{=}50$) and decreases more gradually, thanks to its
+regularisation mechanism.
 
 % -------------------------------------------------------
 \section{Results on the test set}
@@ -226,27 +227,26 @@ pooling step (the histogram does not encode where in the image each
 visual word appears). Natural extensions would include Spatial Pyramid
 Matching~(Lazebnik et al., 2006) or a chi-squared kernel for the SVM.
 
-
 % -------------------------------------------------------
 \begin{thebibliography}{9}
 
 \bibitem{lazebnik2006}
 S.~Lazebnik, C.~Schmid, and J.~Ponce,
-\textit{Beyond Bags of Features: Spatial Pyramid Matching for Recognizing
-Natural Scene Categories},
-in \textit{Proceedings of the IEEE Conference on Computer Vision and
-Pattern Recognition (CVPR)}, pp.~2169--2178, 2006.
+\textit{Beyond Bags of Features: Spatial Pyramid Matching for
+Recognizing Natural Scene Categories},
+in \textit{Proc.\ IEEE CVPR}, pp.~2169--2178, 2006.
 
 \bibitem{csurka2004}
 G.~Csurka, C.~Dance, L.~Fan, J.~Willamowski, and C.~Bray,
 \textit{Visual Categorization with Bags of Keypoints},
-in \textit{Workshop on Statistical Learning in Computer Vision, ECCV},
-pp.~1--22, 2004.
+in \textit{Workshop on Statistical Learning in Computer Vision,
+ECCV}, 2004.
 
 \bibitem{lowe2004}
 D.~G.~Lowe,
 \textit{Distinctive Image Features from Scale-Invariant Keypoints},
-\textit{International Journal of Computer Vision}, 60(2):91--110, 2004.
+\textit{International Journal of Computer Vision},
+60(2):91--110, 2004.
 
 \end{thebibliography}
 
@@ -255,77 +255,16 @@ D.~G.~Lowe,
 \section*{Appendix: AI usage}
 \addcontentsline{toc}{section}{Appendix: AI usage}
 
-Claude (Anthropic, claude.ai) was used throughout this project as a
-collaborative study companion: a resource to consult when stuck,
-to verify understanding, and to improve code clarity --- not as a
-generator of solutions. All implementation decisions, experimental
-choices, and results were made and verified independently.
+Claude (Anthropic) was used as a support
+tool during the development of this project. Claude helped with the
+\LaTeX{} typesetting of this report, improved code comments and
+docstrings to make the implementation clearer and more readable,
+suggested minor stylistic improvements to the code, and helped
+identify and fix several bugs in the pipeline (inconsistent category
+ordering due to \texttt{os.listdir}, descriptor/label misalignment
+after the train/validation split). All implementation choices,
+experimental results, and the technical content of this report were
+independently produced and verified. The code was run locally.
 
-\medskip
-\noindent The following examples are representative of how Claude was
-used during development.
-
-\paragraph{Code organisation.}
-After writing a working but monolithic script, I asked:
-\begin{quote}
-\textit{``I have all my BoW code in one file and it's getting hard to
-read. How would you suggest splitting it into modules? I have
-descriptor extraction, k-means vocabulary, histogram encoding, and
-classifiers.''}
-\end{quote}
-Claude suggested the four-module structure
-(\texttt{features.py}, \texttt{vocabulary.py}, \texttt{classifier.py},
-\texttt{utils.py}) that is used in the final codebase. I then
-restructured the code myself following that suggestion.
-
-\paragraph{Debugging.}
-When my confusion matrices showed categories in a different order
-between training and test, I described the symptom:
-\begin{quote}
-\textit{``My confusion matrix looks wrong --- the diagonal is not where
-I expect it. I think the category labels might be in a different order
-for training and test. I'm using \texttt{os.listdir} to get the class
-names. Could that be the problem?''}
-\end{quote}
-Claude confirmed that \texttt{os.listdir} does not guarantee a
-consistent order across calls and suggested using \texttt{sorted()}.
-I verified the fix and applied it.
-
-Similarly, when histograms for some validation images came out as
-all-zero vectors, I asked:
-\begin{quote}
-\textit{``Some of my BoW histograms are all zeros after the
-train/validation split. The images load fine. Could the split have
-caused a descriptor/label misalignment?''}
-\end{quote}
-Claude helped me trace the bug to a list-indexing issue introduced
-by the split. I identified the exact line and corrected it.
-
-\paragraph{Conceptual clarification.}
-While deciding on the normalisation strategy, I used Claude to
-check my reasoning:
-\begin{quote}
-\textit{``I'm normalising my histograms with L1 (divide by the sum of
-counts). Would L2 be better here? I want the vectors to be comparable
-regardless of how many keypoints each image has.''}
-\end{quote}
-Claude confirmed that L1 is the natural choice for frequency
-histograms and explained the difference with L2, which I then
-included in the report.
-
-\paragraph{Documentation.}
-Once the code was complete and correct, I asked Claude to review
-selected docstrings and Markdown cells for clarity:
-\begin{quote}
-\textit{``Can you improve this docstring? I want it to clearly state
-what the function returns and what the shapes are, without adding
-anything that isn't already in the code.''}
-\end{quote}
-Claude proposed revised wording, which I edited further to match
-the style of the rest of the codebase.
-
-\medskip
-\noindent The report was written independently. Claude was not asked
-to draft, summarise, or paraphrase any part of it.
 
 \end{document}
